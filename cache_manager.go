@@ -60,7 +60,9 @@ func (c cacheManager) Get(ctx context.Context, key string) *string {
 }
 
 func (c cacheManager) Set(ctx context.Context, key string, val any) error {
-	if reflect.TypeOf(val).Kind() == reflect.Struct {
+	typeOf := reflect.TypeOf(val)
+	kind := typeOf.Kind()
+	if kind == reflect.Struct || (kind == reflect.Slice && typeOf.Elem().Kind() == reflect.Struct) {
 		result, err := json.Marshal(val)
 		if err != nil {
 			fmt.Println("Error marshaling to JSON:", err)
@@ -68,12 +70,7 @@ func (c cacheManager) Set(ctx context.Context, key string, val any) error {
 		val = string(result)
 	}
 
-	err := c.redis.Set(ctx, key, val, 24*time.Hour).Err()
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return c.redis.Set(ctx, key, val, 24*time.Hour).Err()
 }
 
 func (c cacheManager) Del(ctx context.Context, key string) error {
